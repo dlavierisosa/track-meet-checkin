@@ -20,20 +20,20 @@ def extract_data_from_pdf(uploaded_file):
                         line = line.strip()
                         
                         # Detect event headers (Improved Regex)
-                        event_match = re.match(r"Event\s+\d+\s+(.+)", line)
+                        event_match = re.match(r"^Event\s+\d+\s+(.+)", line)
                         if event_match:
                             event_name = event_match.group(1).strip()
                             heat_number = 0  # Reset heat count for new events
                             continue
                         
                         # Detect heat number
-                        heat_match = re.match(r"(Section|Heat)\s+(\d+)\s+of", line)
+                        heat_match = re.match(r"^(Section|Heat)\s+(\d+)\s+of", line)
                         if heat_match:
                             heat_number = int(heat_match.group(2))
                             continue
                         
                         # Extract athlete details properly
-                        athlete_match = re.match(r"^([A-Za-z'\- ]+),\s+([A-Za-z'\- ]+)\s+([\d\.\:]+|NH|ND|NT)\s+([A-Za-z'\- ]+)", line)
+                        athlete_match = re.match(r"^([A-Za-z'\- ]+),\s+([A-Za-z'\- ]+)\s+(\d+:\d+\.\d+|\d+\.\d+m?|NH|ND|NT)\s+([A-Za-z'\- ]+)", line)
                         if athlete_match and event_name:
                             full_event_name = f"{event_name} - Heat {heat_number}" if heat_number > 0 else event_name
                             extracted_data.append([
@@ -45,8 +45,9 @@ def extract_data_from_pdf(uploaded_file):
     return extracted_data, raw_text
 
 # Streamlit UI
+st.set_page_config(page_title="Track Meet Check-In", layout="wide")
 st.title("🏃 Track Meet Electronic Check-In")
-st.write("Upload a track meet entry PDF and easily manage athlete check-ins.")
+st.write("Upload a track meet entry PDF and efficiently manage athlete check-ins.")
 
 uploaded_file = st.file_uploader("📂 Upload Meet Entries PDF", type=["pdf"])
 
@@ -62,6 +63,11 @@ if uploaded_file:
 if not df.empty:
     # Ensure heats appear in correct order
     df.sort_values(by=["Event", "Seed Mark"], ascending=[True, True], inplace=True, na_position='last')
+    
+    # Search Bar
+    search_query = st.text_input("🔍 Search for an Event, Athlete, or Heat")
+    if search_query:
+        df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
     
     # Select Event
     unique_events = df["Event"].unique().tolist()
@@ -86,6 +92,7 @@ if not df.empty:
         )
 else:
     st.warning("⚠️ No data was extracted. Please check if the PDF is formatted correctly.")
+
 
 
 

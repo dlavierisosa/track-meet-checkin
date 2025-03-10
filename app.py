@@ -19,7 +19,7 @@ def extract_data_from_pdf(uploaded_file):
                     for line in lines:
                         line = line.strip()
                         
-                        # Detect event headers (Improved Regex)
+                        # Detect event headers
                         event_match = re.match(r"^Event\s+\d+\s+(.+)", line)
                         if event_match:
                             event_name = event_match.group(1).strip()
@@ -27,20 +27,20 @@ def extract_data_from_pdf(uploaded_file):
                             continue
                         
                         # Detect heat number
-                        heat_match = re.match(r"^(Section|Heat)\s+(\d+)\s+of", line)
+                        heat_match = re.match(r"^(Section|Heat)\s+(\d+)", line)
                         if heat_match:
                             heat_number = int(heat_match.group(2))
                             continue
                         
                         # Extract athlete details properly
-                        athlete_match = re.match(r"^([A-Za-z'\- ]+),\s+([A-Za-z'\- ]+)\s+(\d+:\d+\.\d+|\d+\.\d+m?|NH|ND|NT)\s+([A-Za-z'\- ]+)", line)
+                        athlete_match = re.match(r"^(\d+)\s+([A-Za-z'\- ]+),\s+([A-Za-z'\- ]+)\s+([\w\d\.]+)\s+([A-Za-z'\- ]+)", line)
                         if athlete_match and event_name:
                             full_event_name = f"{event_name} - Heat {heat_number}" if heat_number > 0 else event_name
                             extracted_data.append([
                                 full_event_name,
-                                f"{athlete_match.group(2)} {athlete_match.group(1)}",  # Athlete Name (Corrected Order)
-                                athlete_match.group(4),  # School Name
-                                athlete_match.group(3)   # Seed Mark
+                                f"{athlete_match.group(3)} {athlete_match.group(2)}",  # Athlete Name (Corrected Order)
+                                athlete_match.group(5),  # School Name
+                                athlete_match.group(4)   # Seed Mark
                             ])
     return extracted_data, raw_text
 
@@ -55,7 +55,6 @@ data, raw_text = extract_data_from_pdf(uploaded_file) if uploaded_file else ([],
 df = pd.DataFrame(data, columns=["Event", "Athlete", "School", "Seed Mark"])
 df["Checked In"] = False
 
-# Debugging: Show extracted raw text
 if uploaded_file:
     st.subheader("📜 Extracted Raw Text (Debugging)")
     st.text_area("Raw text from PDF", raw_text, height=200)

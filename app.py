@@ -13,17 +13,25 @@ def extract_data_from_pdf(uploaded_file):
                 if text:
                     lines = text.split('\n')
                     event_name = ""
+                    heat_number = 0
                     for line in lines:
                         # Detect event headers
                         event_match = re.match(r"Event\s+\d+\s+(.*)", line)
                         if event_match:
                             event_name = event_match.group(1).strip()
+                            heat_number = 0  # Reset heat count for new events
+                        
+                        # Detect heat number
+                        heat_match = re.match(r"Section\s+(\d+)\s+of", line)
+                        if heat_match:
+                            heat_number = int(heat_match.group(1))
                         
                         # Extract athlete details
                         athlete_match = re.match(r"(.+?)\s+([\w ]+)\s+((?:\d+\.\d+m?)|NH|ND|NT|\d+:\d+\.\d+)", line)
                         if athlete_match and event_name:
+                            full_event_name = f"{event_name} - Heat {heat_number}" if heat_number > 0 else event_name
                             extracted_data.append([
-                                event_name,
+                                full_event_name,
                                 athlete_match.group(1).strip(),  # Athlete Name
                                 athlete_match.group(2).strip(),  # School Name
                                 athlete_match.group(3).strip()   # Seed Mark

@@ -6,10 +6,12 @@ import re
 # Function to extract data from PDF with improved parsing logic
 def extract_data_from_pdf(uploaded_file):
     extracted_data = []
+    raw_text = ""  # Store raw text for debugging
     if uploaded_file is not None:
         with pdfplumber.open(uploaded_file) as pdf:
             for page in pdf.pages:
                 text = page.extract_text()
+                raw_text += text + "\n\n"  # Collect raw text
                 if text:
                     lines = text.split('\n')
                     event_name = ""
@@ -40,7 +42,7 @@ def extract_data_from_pdf(uploaded_file):
                                 athlete_match.group(4),  # School Name
                                 athlete_match.group(3)   # Seed Mark
                             ])
-    return extracted_data
+    return extracted_data, raw_text
 
 # Streamlit UI
 st.title("🏃 Track Meet Electronic Check-In")
@@ -48,9 +50,14 @@ st.write("Upload a track meet entry PDF and easily manage athlete check-ins.")
 
 uploaded_file = st.file_uploader("📂 Upload Meet Entries PDF", type=["pdf"])
 
-data = extract_data_from_pdf(uploaded_file) if uploaded_file else []
+data, raw_text = extract_data_from_pdf(uploaded_file) if uploaded_file else ([], "")
 df = pd.DataFrame(data, columns=["Event", "Athlete", "School", "Seed Mark"])
 df["Checked In"] = False
+
+# Debugging: Show extracted raw text
+if uploaded_file:
+    st.subheader("📜 Extracted Raw Text (Debugging)")
+    st.text_area("Raw text from PDF", raw_text, height=200)
 
 if not df.empty:
     # Ensure heats appear in correct order
@@ -78,7 +85,7 @@ if not df.empty:
             key="download-csv"
         )
 else:
-    st.info("Upload a PDF to begin.")
+    st.warning("⚠️ No data was extracted. Please check if the PDF is formatted correctly.")
 
 
 
